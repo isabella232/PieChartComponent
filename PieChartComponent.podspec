@@ -6,10 +6,7 @@ Pod::Spec.new do |s|
     'Vitor Venturin' => '@vitorventurin'
   }
   s.homepage     = 'https://github.com/RobotsAndPencils/PieChartComponent'
-  s.source = {
-    :git => 'https://github.com/RobotsAndPencils/PieChartComponent.git',
-    :tag => '1.0.0'
-  }
+  s.source = { :git => "git@github.com:RobotsAndPencils/PieChartComponent.git", :tag => s.version.to_s }
   s.source_files = 'PieChartComponent/*.{h,m}'
   s.license      = 'MIT'
   s.platform     = :ios, '9.0'
