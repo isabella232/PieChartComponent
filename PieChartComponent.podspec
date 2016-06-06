@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.author = {
     'Vitor Venturin' => '@vitorventurin'
   }
-  s.homepage     = 'https://github.com/RobotsAndPencils/PieChartComponent'
+  s.homepage     = 'https://robotsandpencils.com'
   s.source = { :git => "git@github.com:RobotsAndPencils/PieChartComponent.git", :tag => s.version.to_s }
   s.source_files = 'PieChartComponent/*.{h,m}'
   s.license      = 'MIT'
