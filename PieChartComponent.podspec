@@ -6,9 +6,14 @@ Pod::Spec.new do |s|
     'Vitor Venturin' => '@vitorventurin'
   }
   s.homepage     = 'https://robotsandpencils.com'
-  s.source = { :git => "git@github.com:RobotsAndPencils/PieChartComponent.git", :tag => s.version.to_s }
+  s.source       = { :git => "git@github.com:RobotsAndPencils/PieChartComponent.git", :tag => s.version.to_s }
   s.source_files = 'PieChartComponent/*.{h,m}'
-  s.license      = 'MIT'
+  s.license      = {
+    :type => 'MIT',
+    :text => <<-LICENSE
+            Copyright (c) 2014 Vitor Venturin. All rights reserved.
+    LICENSE
+  }
   s.platform     = :ios, '9.0'
   s.requires_arc = true
 end
