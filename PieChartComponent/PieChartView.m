@@ -7,6 +7,7 @@
 //  http://github.com/vitorventurin
 
 #import "PieChartView.h"
+#import "PieChartItem.h"
 
 typedef enum {
     AnimationStateDeselecting = 0,
@@ -17,64 +18,36 @@ typedef enum {
 
 @interface PieChartView()
 
-@property(nonatomic,weak) PieChartItem *lastSelectedItem;
-@property(nonatomic,assign) CGFloat animationFrequency;
-@property(nonatomic,assign) CGFloat selectedItemSize;
-@property(nonatomic,assign) AnimationState animationState;
+@property(assign, nonatomic) NSInteger lastSelectedItemIndex;
+@property(assign, nonatomic) CGFloat animationFrequency;
+@property(assign, nonatomic) CGFloat selectedItemSize;
+@property(assign, nonatomic) AnimationState animationState;
 
 //Animation
-@property(nonatomic,assign) CGFloat animationSizePercentage;
-@property(nonatomic,assign) CGFloat animationResizing;
-@property(nonatomic,assign) CGFloat animationAngleOffset;
-@property(nonatomic,assign) CGFloat animationChangeAngle;
-@property(nonatomic,assign) CGFloat animationSumAngle;
+@property(assign, nonatomic) CGFloat animationSizePercentage;
+@property(assign, nonatomic) CGFloat animationResizing;
+@property(assign, nonatomic) CGFloat animationAngleOffset;
+@property(assign, nonatomic) CGFloat animationChangeAngle;
+@property(assign, nonatomic) CGFloat animationSumAngle;
 
 @end
 
-
 @implementation PieChartView
-
-//UITapGestureRecognizer* tapRecognizer;
 
 #pragma mark - init
 - (instancetype)initWithCoder:(NSCoder *)aDecoder{
     self = [super initWithCoder:aDecoder];
     if (self) {
         self.animationFrequency = 1.0/90.0;
-        self.selectedItemSize = .15;
+        self.selectedItemSize = .10;//.15;
         self.backgroundColor = [UIColor clearColor];
     }
     return self;
 }
 
-- (void)layoutSubviews {
-    [self setFrame:CGRectMake(10, 40, 120, 120)];
-}
-
-- (void)awakeFromNib{
-    [super awakeFromNib];
-
-//    tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(viewTapped:)];
-//    [self addGestureRecognizer:tapRecognizer];
-
-}
-
 #pragma mark - Actions
--(void)viewTapped:(UITapGestureRecognizer *)gesture{
-//    CGPoint point = [gesture locationInView:self];
-//    
-//    if ([self calculateDistanceFromCenter:point] <= 20) {
-//        return;
-//    }
-//    
-//    //Set the point into the right coordinates
-//    point = CGPointMake(point.x-self.frame.size.width/2, (self.frame.size.height/2)-point.y);
-//    CGFloat angle = [self radiansFromPoint:point];
-//    PieChartItem *item = [self itemForAngleInRadians:angle];
-//    self.configuration.selectedItem = item;
-}
 
-- (float) calculateDistanceFromCenter:(CGPoint)point {
+- (CGFloat)calculateDistanceFromCenter:(CGPoint)point {
     CGPoint center = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
     float dx = point.x - center.x;
     float dy = point.y - center.y;
@@ -82,35 +55,56 @@ typedef enum {
 }
 
 #pragma mark - Setup
+
 - (void)selectionWasChanged {
     //Make Deselection
     NSTimeInterval delay = 0;
     [self performSelector:@selector(prepareForDeselectAnimation) withObject:nil afterDelay:delay];
     
     //Make Rotation
-    delay = self.configuration.animationDuration/3.0;
+    delay = self.animationDuration/3.0;
     
     [self performSelector:@selector(prepareForRotationAnimation) withObject:nil afterDelay:delay];
 }
 
-- (void)setSelectedItem:(PieChartItem *)selectedItem {
-    if (selectedItem != self.lastSelectedItem) {
-        _selectedItem = selectedItem;
+- (void)setSelectedItemIndex:(NSInteger)selectedItemIndex {
+    if (selectedItemIndex != self.lastSelectedItemIndex) {
+        _selectedItemIndex = selectedItemIndex;
         [self selectionWasChanged];
         [self reloadData];
     }
 }
 
-- (void)setConfiguration:(PieChartConfiguration *)configuration {
-    if (configuration != _configuration) {
-        _configuration = configuration;
-        self.lastSelectedItem = self.selectedItem;
+- (void)setItems:(NSMutableArray *)items {
+    if (items != self.items) {
+        _items = items;
+        if (items.count > 0) {
+            _selectedItemIndex = 0;
+            _lastSelectedItemIndex = self.selectedItemIndex;
+        }
+        
+        [self reloadData];
     }
 }
 
 - (void)reloadData {
     self.animationState = AnimationStateNoAnimaton;
     [self setNeedsDisplay];
+}
+
+#pragma mark - Helpers
+- (PieChartItem *)selectedItem {
+    if (self.items.count > self.selectedItemIndex) {
+        return self.items[self.selectedItemIndex];
+    }
+    return nil;
+}
+
+- (PieChartItem *)lastSelectedItem {
+    if (self.items.count > self.lastSelectedItemIndex) {
+        return self.items[self.lastSelectedItemIndex];
+    }
+    return nil;
 }
 
 #pragma mark - Animation
@@ -123,7 +117,7 @@ typedef enum {
 }
 
 - (void)prepareForDeselectAnimation{
-    self.animationResizing = self.selectedItemSize * self.animationFrequency / (self.configuration.animationDuration/3);
+    self.animationResizing = self.selectedItemSize * self.animationFrequency / (self.animationDuration/3);
     self.animationSizePercentage = self.selectedItemSize;
     self.animationState = AnimationStateDeselecting;
     [self setNeedsDisplay];
@@ -145,7 +139,7 @@ typedef enum {
     self.animationState = AnimationStateRotating;
     self.animationSumAngle = 0;
     self.animationAngleOffset = 0;
-    self.animationChangeAngle = [self totalAngleOffset] * self.animationFrequency / (self.configuration.animationDuration/3);
+    self.animationChangeAngle = [self totalAngleOffset] * self.animationFrequency / (self.animationDuration/3);
     self.animationState = AnimationStateRotating;
     [self setNeedsDisplay];
 }
@@ -160,9 +154,9 @@ typedef enum {
 }
 
 - (void)prepareForSelectAnimation{
-    [self setLastSelectedItem: self.selectedItem];
+    [self setLastSelectedItemIndex: self.selectedItemIndex];
 
-    self.animationResizing = self.selectedItemSize * self.animationFrequency / (self.configuration.animationDuration/3);
+    self.animationResizing = self.selectedItemSize * self.animationFrequency / (self.animationDuration/3);
     self.animationSizePercentage = 0;
     self.animationState = AnimationStateSelecting;
     [self setNeedsDisplay];
@@ -172,11 +166,11 @@ typedef enum {
 - (void)drawItemsWithSelectedPercentageSize:(CGFloat)selectedPercentage angleOffset:(CGFloat)angleOffset{
     //Big circle
     if (self.lastSelectedItem == nil) {
-        self.lastSelectedItem = [self.configuration.items objectAtIndex:0];
+        self.lastSelectedItemIndex = 0;
     }
-    NSUInteger selectedItemIndex = [self.configuration.items indexOfObject:self.lastSelectedItem];
-    NSArray *sortedArray = [self.configuration.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.configuration.items.count-selectedItemIndex)];
-    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.configuration.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
+    NSUInteger selectedItemIndex = [self.items indexOfObject:self.lastSelectedItem];
+    NSArray *sortedArray = [self.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.items.count-selectedItemIndex)];
+    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
     
     CGFloat lastAngle = angleOffset - (M_PI + [self percentToRadians:self.lastSelectedItem.percentage])/2;
     for (NSUInteger index = 0; index < sortedArray.count; index++) {
@@ -186,7 +180,7 @@ typedef enum {
         CGContextRef context = UIGraphicsGetCurrentContext();
         CGContextSetLineWidth(context,0);
         CGContextSetLineJoin(context, kCGLineJoinRound);
-        CGContextSetFillColorWithColor(context,[[self.configuration colorForItem:item] CGColor]);
+        CGContextSetFillColorWithColor(context,[item.itemColor CGColor]);
         
         //Begin Context
         CGContextBeginPath(context);
@@ -206,42 +200,13 @@ typedef enum {
         lastAngle = toAngle;
     }
     
-    //Small circle
-    for (NSUInteger index = 0; index < sortedArray.count; index++) {
-        PieChartItem* item = sortedArray[index];
-        
-        //Colors settings
-        CGContextRef context = UIGraphicsGetCurrentContext();
-        CGContextSetLineWidth(context,0);
-        CGContextSetLineJoin(context, kCGLineJoinRound);
-        CGContextSetFillColorWithColor(context,[[UIColor clearColor] CGColor]);
-        
-        //Begin Context
-        CGContextBeginPath(context);
-        
-        //Angle settings
-        CGFloat radious = self.frame.size.width*.52/2;
-        if ([self.lastSelectedItem isEqual:item]) {
-            radious += radious * selectedPercentage/2;
-        }
-        
-        
-        CGFloat toAngle = lastAngle + item.percentage*2*M_PI;
-        
-        CGContextAddArc(context, self.frame.size.width/2,self.frame.size.height/2,radious,lastAngle,toAngle,NO);
-        CGContextAddLineToPoint(context, self.frame.size.width/2,self.frame.size.height/2);
-        CGContextClosePath(context);
-        CGContextDrawPath(context,kCGPathFillStroke);
-        lastAngle = toAngle;
-    }
-    
     //White small circle
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextSetLineWidth(context,0);
     CGContextSetLineJoin(context, kCGLineJoinRound);
     CGContextSetFillColorWithColor(context,[[UIColor whiteColor] CGColor]);
     
-    CGFloat radious = self.frame.size.width/2;
+    CGFloat radious = self.frame.size.width/1.25;
     radious = radious * 0.4;
     CGContextAddArc(context, self.frame.size.width/2,self.frame.size.height/2,radious,0,2*M_PI,NO);
     CGContextClosePath(context);
@@ -302,9 +267,9 @@ typedef enum {
 
 - (CGFloat)totalAngleOffset{
     //Chequear lasitem vs configuration.item
-    NSUInteger selectedItemIndex = [self.configuration.items indexOfObject:self.lastSelectedItem];
-    NSArray *sortedArray = [self.configuration.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.configuration.items.count-selectedItemIndex)];
-    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.configuration.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
+    NSUInteger selectedItemIndex = [self.items indexOfObject:self.lastSelectedItem];
+    NSArray *sortedArray = [self.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.items.count-selectedItemIndex)];
+    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
     
     CGFloat totalAngle = 0;
     for (NSUInteger index = 0; index < sortedArray.count; index++) {
@@ -343,9 +308,9 @@ typedef enum {
 - (PieChartItem *)itemForAngleInRadians:(CGFloat)radians{
     CGFloat radiansWithOffset = radians;// - (M_PI + [self percentToRadians:self.lastSelectedItem.percentage])/2;
     
-    NSUInteger selectedItemIndex = [self.configuration.items indexOfObject:self.lastSelectedItem];
-    NSArray *sortedArray = [self.configuration.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.configuration.items.count-selectedItemIndex)];
-    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.configuration.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
+    NSUInteger selectedItemIndex = [self.items indexOfObject:self.lastSelectedItem];
+    NSArray *sortedArray = [self.items subarrayWithRange:NSMakeRange(selectedItemIndex, self.items.count-selectedItemIndex)];
+    sortedArray = [sortedArray arrayByAddingObjectsFromArray:[self.items subarrayWithRange:NSMakeRange(0, selectedItemIndex)]];
     
     CGFloat fromAngle = - (M_PI + [self percentToRadians:self.lastSelectedItem.percentage])/2;;
     for (NSUInteger index = 0; index < sortedArray.count; index++) {

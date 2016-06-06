@@ -7,11 +7,15 @@
 //  http://github.com/vitorventurin
 
 #import <UIKit/UIKit.h>
-#import "PieChartConfiguration.h"
+
+@class PieChartItem;
 
 @interface PieChartView : UIView
 
-@property (nonatomic, strong) PieChartConfiguration* configuration;
-@property(nonatomic,strong) PieChartItem* selectedItem;
+@property(strong, nonatomic) NSMutableArray *items;
+@property(assign, nonatomic) NSInteger selectedItemIndex;
+@property(assign, nonatomic) CGFloat animationDuration;
+
+- (PieChartItem *)selectedItem;
 
 @end
